@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Expense &amp; Budget Visualizer</title>
+  <meta name="description" content="Track your daily spending and visualize it by category. Works offline in your browser." />
+  <meta name="theme-color" content="#6366f1" />
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- Apply saved theme before paint to avoid a flash of the wrong theme. -->
+  <script>
+    (function () {
+      try {
+        var saved = JSON.parse(localStorage.getItem('ebv_state') || '{}');
+        var theme = saved.theme ||
+          (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+      } catch (e) { /* fall back to default light theme */ }
+    })();
+  </script>
+
+  <!-- Chart.js is loaded from a CDN (allowed by the spec). -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  <!-- All app logic lives in a single file inside js/. -->
+  <script src="js/app.js" defer></script>
+</head>
+<body>
+  <main class="app">
+    <!-- Header -->
+    <header class="app__header">
+      <div class="app__heading">
+        <h1>Expense &amp; Budget</h1>
+        <p class="app__subtitle">Track spending, see where it goes.</p>
+      </div>
+      <button id="themeToggle" class="icon-btn" type="button" aria-label="Switch to dark mode" title="Toggle theme"></button>
+    </header>
+
+    <!-- Budget summary / Total balance -->
+    <section class="card summary" aria-label="Budget summary">
+      <div class="summary__main">
+        <span class="summary__label">Total balance</span>
+        <span id="balance" class="summary__balance">$0.00</span>
+      </div>
+      <div class="summary__row">
+        <div class="summary__item">
+          <span class="summary__label-sm">Budget</span>
+          <div class="money-input">
+            <span class="money-input__currency">$</span>
+            <input id="budgetInput" type="number" min="0" step="0.01" inputmode="decimal"
+                   placeholder="0.00" aria-label="Your budget" />
+          </div>
+        </div>
+        <div class="summary__item">
+          <span class="summary__label-sm">Spent</span>
+          <span id="spent" class="summary__value">$0.00</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Add transaction form -->
+    <section class="card" aria-label="Add a transaction">
+      <form id="txForm" class="form" novalidate>
+        <div class="form__row">
+          <label class="field">
+            <span class="field__label">Item name</span>
+            <input id="itemName" type="text" maxlength="40" autocomplete="off"
+                   placeholder="e.g. Lunch" aria-label="Item name" />
+          </label>
+        </div>
+
+        <div class="form__row form__row--split">
+          <label class="field">
+            <span class="field__label">Amount</span>
+            <input id="amount" type="number" min="0.01" step="0.01" inputmode="decimal"
+                   placeholder="0.00" aria-label="Amount" />
+          </label>
+
+          <label class="field field--category">
+            <span class="field__label">Category</span>
+            <div class="category-field">
+              <select id="category" aria-label="Category"></select>
+              <button id="addCategoryBtn" type="button" class="icon-btn icon-btn--solid"
+                      aria-label="Add a custom category" title="Add a custom category">+</button>
+            </div>
+          </label>
+        </div>
+
+        <!-- Custom category input (revealed by the + button) -->
+        <div id="customCategoryWrap" class="form__row custom-cat" hidden>
+          <label class="field">
+            <span class="field__label">New category name</span>
+            <div class="custom-cat__inner">
+              <input id="customCategory" type="text" maxlength="20" autocomplete="off"
+                     placeholder="e.g. Bills" aria-label="New category name" />
+              <button id="confirmCategoryBtn" type="button" class="btn btn--small btn--primary">Add</button>
+              <button id="cancelCategoryBtn" type="button" class="btn btn--small btn--ghost">Cancel</button>
+            </div>
+          </label>
+        </div>
+
+        <p id="formError" class="form__error" role="alert" hidden></p>
+
+        <button type="submit" class="btn btn--primary btn--block">Add transaction</button>
+      </form>
+    </section>
+
+    <!-- Spending by category (pie chart) -->
+    <section class="card" aria-label="Spending by category">
+      <div class="card__head">
+        <h2 class="card__title">Spending by category</h2>
+      </div>
+      <div class="chart-wrap">
+        <div class="chart-wrap__canvas">
+          <canvas id="chart" role="img" aria-label="Pie chart of spending by category"></canvas>
+          <p id="chartPlaceholder" class="chart-placeholder" role="status">No spending to chart yet.</p>
+        </div>
+        <ul id="legend" class="legend" aria-label="Category breakdown"></ul>
+      </div>
+    </section>
+
+    <!-- Transactions list -->
+    <section class="card" aria-label="Transactions">
+      <div class="card__head list__head">
+        <h2 class="card__title">Transactions</h2>
+        <label class="sort">
+          <span class="sort__label">Sort</span>
+          <select id="sortBy" aria-label="Sort transactions">
+            <option value="newest">Newest</option>
+            <option value="amount-desc">Amount: High → Low</option>
+            <option value="amount-asc">Amount: Low → High</option>
+            <option value="category-asc">Category: A → Z</option>
+          </select>
+        </label>
+      </div>
+      <ul id="txList" class="tx-list" aria-live="polite"></ul>
+      <p id="emptyState" class="empty-state" hidden>No transactions yet. Add one above to get started.</p>
+    </section>
+
+    <!-- Footer -->
+    <footer class="app__footer">
+      <button id="clearAllBtn" type="button" class="btn btn--small btn--ghost">Clear all data</button>
+      <p class="app__note">Saved locally in your browser.</p>
+    </footer>
+  </main>
+</body>
+</html>
